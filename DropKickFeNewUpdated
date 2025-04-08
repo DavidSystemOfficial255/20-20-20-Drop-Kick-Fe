@@ -1,5 +1,4 @@
 loadstring([[
-
 -- SETTINGS
 local dashSpeedInitial = 90
 local dashSpeedFinal = 51.5
