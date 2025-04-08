@@ -1,0 +1,111 @@
+loadstring([[
+-- Dash Settings
+local dashSpeedInitial = 90
+local dashSpeedFinal = 51.5
+local dashStopTime = 5.37
+local dashStartDelay = 1.92
+local cooldown = 12
+local animationId = "134496321414829"
+
+local player = game.Players.LocalPlayer
+repeat wait() until player.Character
+local character = player.Character
+local humanoid = character:FindFirstChildOfClass("Humanoid")
+local rootPart = character:FindFirstChild("HumanoidRootPart")
+local userInputService = game:GetService("UserInputService")
+
+local debounce = false
+local dashRunning = false
+local dashStartTime = 0
+local dashSpeed = dashSpeedInitial
+
+-- UI Creation
+local screenGui = Instance.new("ScreenGui")
+screenGui.Parent = player:WaitForChild("PlayerGui")
+screenGui.ResetOnSpawn = false
+
+local dashButton = Instance.new("TextButton")
+dashButton.Parent = screenGui
+dashButton.Size = UDim2.new(0.2, 0, 0.1, 0)
+dashButton.Position = UDim2.new(0.4, 0, 0.8, 0)
+dashButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+dashButton.TextColor3 = Color3.new(1, 1, 1)
+dashButton.TextSize = 24
+dashButton.Text = "Tap to Dash"
+
+local dashInfo = Instance.new("TextLabel")
+dashInfo.Parent = screenGui
+dashInfo.Size = UDim2.new(0.3, 0, 0.1, 0)
+dashInfo.Position = UDim2.new(0.35, 0, 0.7, 0)
+dashInfo.BackgroundTransparency = 1
+dashInfo.TextColor3 = Color3.new(1, 1, 1)
+dashInfo.TextScaled = true
+dashInfo.Font = Enum.Font.SourceSansBold
+dashInfo.Text = "Press Q to Dash"
+
+if userInputService.TouchEnabled then
+	dashInfo.Visible = false
+else
+	dashButton.Visible = true
+end
+
+-- Animation Setup
+local animation = Instance.new("Animation")
+animation.AnimationId = "rbxassetid://" .. animationId
+local animator = humanoid:FindFirstChildOfClass("Animator")
+local animTrack = animator:LoadAnimation(animation)
+
+-- Dash Function
+local function startDash()
+	if debounce or dashRunning then return end  -- Prevents stacking
+	debounce = true
+	dashRunning = true
+
+	-- Play dash animation
+	animTrack:Play()
+
+	-- Wait before dashing
+	wait(dashStartDelay)
+
+	-- Start dash
+	local dashDirection = rootPart.CFrame.LookVector
+	dashSpeed = dashSpeedInitial
+	dashStartTime = tick()
+
+	-- Dash Loop
+	while dashRunning do
+		dashDirection = rootPart.CFrame.LookVector
+		rootPart.Velocity = dashDirection * dashSpeed
+
+		-- Slow down at 7.89s
+		if tick() - dashStartTime >= 3.89 then
+			dashSpeed = dashSpeedFinal
+		end
+
+		-- Stop dash at 9.9s
+		if tick() - dashStartTime >= dashStopTime then
+			dashRunning = false
+			rootPart.Velocity = Vector3.zero
+			break
+		end
+
+		wait(0.05)
+	end
+
+	-- Cooldown
+	wait(cooldown)
+	debounce = false
+end
+
+-- PC Activation: Q Key Press
+userInputService.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == Enum.KeyCode.Q then
+		startDash()
+	end
+end)
+
+-- Mobile Activation: Button Click
+dashButton.MouseButton1Click:Connect(function()
+	startDash()
+end)
+]])()
