@@ -1,11 +1,11 @@
 loadstring([[
--- SETTINGS
+-- Dash Settings
 local dashSpeedInitial = 90
 local dashSpeedFinal = 51.5
-local dashStopTime = 9.9
+local dashStopTime = 5.37
 local dashStartDelay = 1.92
 local cooldown = 12
-local animationId = "rbxassetid://134496321414829"  -- Replace this if needed!
+local animationId = "134496321414829"
 
 local player = game.Players.LocalPlayer
 repeat wait() until player.Character
@@ -15,28 +15,20 @@ local rootPart = character:FindFirstChild("HumanoidRootPart")
 local userInputService = game:GetService("UserInputService")
 local replicatedStorage = game:GetService("ReplicatedStorage")
 
+-- Check if the RemoteEvent exists, create it if it doesn't
+local dashRemoteEvent = replicatedStorage:FindFirstChild("DashRemoteEvent")
+if not dashRemoteEvent then
+	dashRemoteEvent = Instance.new("RemoteEvent")
+	dashRemoteEvent.Name = "DashRemoteEvent"
+	dashRemoteEvent.Parent = replicatedStorage
+end
+
 local debounce = false
 local dashRunning = false
 local dashStartTime = 0
 local dashSpeed = dashSpeedInitial
 
--- 🔥 SERVER-SIDE ANIMATION REPLICATION 🔥
-local remote = replicatedStorage:FindFirstChild("DashRemote") or Instance.new("RemoteEvent", replicatedStorage)
-remote.Name = "DashRemote"
-
-if not game:GetService("RunService"):IsServer() then
-	remote.OnClientEvent:Connect(function(targetPlayer)
-		if targetPlayer ~= player then
-			local anim = Instance.new("Animation")
-			anim.AnimationId = animationId
-			local animator = humanoid:FindFirstChildOfClass("Animator") or humanoid:FindFirstChild("Humanoid") or humanoid
-			local animTrack = animator:LoadAnimation(anim)
-			animTrack:Play()
-		end
-	end)
-end
-
--- UI CREATION 🔥
+-- UI Creation
 local screenGui = Instance.new("ScreenGui")
 screenGui.Parent = player:WaitForChild("PlayerGui")
 screenGui.ResetOnSpawn = false
@@ -66,22 +58,19 @@ else
 	dashButton.Visible = true
 end
 
--- ANIMATION SETUP 🔥
+-- Animation Setup
 local animation = Instance.new("Animation")
-animation.AnimationId = animationId
-local animator = humanoid:FindFirstChildOfClass("Animator") or humanoid
+animation.AnimationId = "rbxassetid://" .. animationId
+local animator = humanoid:FindFirstChildOfClass("Animator")
 local animTrack = animator:LoadAnimation(animation)
 
--- DASH FUNCTION 🔥
+-- Dash Function
 local function startDash()
-	if debounce or dashRunning then return end
+	if debounce or dashRunning then return end  -- Prevents stacking
 	debounce = true
 	dashRunning = true
 
-	-- 🔥 Play animation for ALL players 🔥
-	remote:FireServer(player)
-
-	-- Play local animation
+	-- Play dash animation
 	animTrack:Play()
 
 	-- Wait before dashing
@@ -98,7 +87,7 @@ local function startDash()
 		rootPart.Velocity = dashDirection * dashSpeed
 
 		-- Slow down at 7.89s
-		if tick() - dashStartTime >= 7.89 then
+		if tick() - dashStartTime >= 3.89 then
 			dashSpeed = dashSpeedFinal
 		end
 
@@ -121,12 +110,16 @@ end
 userInputService.InputBegan:Connect(function(input)
 	if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == Enum.KeyCode.Q then
 		startDash()
+		-- Fire the RemoteEvent to let other clients know the dash started
+		dashRemoteEvent:FireAllClients()
 	end
 end)
 
 -- Mobile Activation: Button Click
 dashButton.MouseButton1Click:Connect(function()
 	startDash()
+	-- Fire the RemoteEvent to let other clients know the dash started
+	dashRemoteEvent:FireAllClients()
 end)
 
 ]])()
