@@ -1,11 +1,12 @@
 loadstring([[
--- Dash Settings
+
+-- SETTINGS
 local dashSpeedInitial = 90
 local dashSpeedFinal = 51.5
-local dashStopTime = 5.37
+local dashStopTime = 9.9
 local dashStartDelay = 1.92
 local cooldown = 12
-local animationId = "134496321414829"
+local animationId = "rbxassetid://134496321414829"  -- Replace this if needed!
 
 local player = game.Players.LocalPlayer
 repeat wait() until player.Character
@@ -13,13 +14,30 @@ local character = player.Character
 local humanoid = character:FindFirstChildOfClass("Humanoid")
 local rootPart = character:FindFirstChild("HumanoidRootPart")
 local userInputService = game:GetService("UserInputService")
+local replicatedStorage = game:GetService("ReplicatedStorage")
 
 local debounce = false
 local dashRunning = false
 local dashStartTime = 0
 local dashSpeed = dashSpeedInitial
 
--- UI Creation
+-- 🔥 SERVER-SIDE ANIMATION REPLICATION 🔥
+local remote = replicatedStorage:FindFirstChild("DashRemote") or Instance.new("RemoteEvent", replicatedStorage)
+remote.Name = "DashRemote"
+
+if not game:GetService("RunService"):IsServer() then
+	remote.OnClientEvent:Connect(function(targetPlayer)
+		if targetPlayer ~= player then
+			local anim = Instance.new("Animation")
+			anim.AnimationId = animationId
+			local animator = humanoid:FindFirstChildOfClass("Animator") or humanoid:FindFirstChild("Humanoid") or humanoid
+			local animTrack = animator:LoadAnimation(anim)
+			animTrack:Play()
+		end
+	end)
+end
+
+-- UI CREATION 🔥
 local screenGui = Instance.new("ScreenGui")
 screenGui.Parent = player:WaitForChild("PlayerGui")
 screenGui.ResetOnSpawn = false
@@ -49,19 +67,22 @@ else
 	dashButton.Visible = true
 end
 
--- Animation Setup
+-- ANIMATION SETUP 🔥
 local animation = Instance.new("Animation")
-animation.AnimationId = "rbxassetid://" .. animationId
-local animator = humanoid:FindFirstChildOfClass("Animator")
+animation.AnimationId = animationId
+local animator = humanoid:FindFirstChildOfClass("Animator") or humanoid
 local animTrack = animator:LoadAnimation(animation)
 
--- Dash Function
+-- DASH FUNCTION 🔥
 local function startDash()
-	if debounce or dashRunning then return end  -- Prevents stacking
+	if debounce or dashRunning then return end
 	debounce = true
 	dashRunning = true
 
-	-- Play dash animation
+	-- 🔥 Play animation for ALL players 🔥
+	remote:FireServer(player)
+
+	-- Play local animation
 	animTrack:Play()
 
 	-- Wait before dashing
@@ -78,7 +99,7 @@ local function startDash()
 		rootPart.Velocity = dashDirection * dashSpeed
 
 		-- Slow down at 7.89s
-		if tick() - dashStartTime >= 3.89 then
+		if tick() - dashStartTime >= 7.89 then
 			dashSpeed = dashSpeedFinal
 		end
 
@@ -108,4 +129,5 @@ end)
 dashButton.MouseButton1Click:Connect(function()
 	startDash()
 end)
+
 ]])()
